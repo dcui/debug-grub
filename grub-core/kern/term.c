@@ -95,6 +95,7 @@ static int cdx_write_msr(u64 str)
 {
 	int ret;
 
+	return 0;
         asm volatile(
                 "xor %%eax, %%eax\n\t"
 
