@@ -680,16 +680,16 @@ grub_dl_load_core (void *addr, grub_size_t size)
 {
   grub_dl_t mod;
 
-  grub_boot_time ("Parsing module");
+  grub_boot_time ("Parsing module\n");
 
   mod = grub_dl_load_core_noinit (addr, size);
 
   if (!mod)
     return NULL;
 
-  grub_boot_time ("Initing module %s", mod->name);
+  grub_boot_time ("Initing module %s\n", mod->name);
   grub_dl_init (mod);
-  grub_boot_time ("Module %s inited", mod->name);
+  grub_boot_time ("Module %s inited\n\n", mod->name);
 
   return mod;
 }
@@ -703,7 +703,7 @@ grub_dl_load_file (const char *filename)
   void *core = 0;
   grub_dl_t mod = 0;
 
-  grub_boot_time ("Loading module %s", filename);
+  grub_boot_time ("Loading module %s\n", filename);
 
   file = grub_file_open (filename, GRUB_FILE_TYPE_GRUB_MODULE);
   if (! file)

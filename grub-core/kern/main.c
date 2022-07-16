@@ -223,6 +223,16 @@ grub_set_prefix_and_root (void)
   grub_print_error ();
 }
 
+static volatile unsigned char cdx;
+static __inline unsigned char
+grub_inb (unsigned short int port)
+ {
+   unsigned char _v;
+
+   asm volatile ("inb %w1,%0":"=a" (_v):"Nd" (port));
+   return _v;
+ }
+
 /* Load the normal mode module and execute the normal mode if possible.  */
 static void
 grub_load_normal_mode (void)
@@ -230,12 +240,16 @@ grub_load_normal_mode (void)
   /* Load the module.  */
   grub_dl_load ("normal");
 
+  //cdx = grub_inb(0x69);
   /* Print errors if any.  */
   grub_print_error ();
   grub_errno = 0;
 
+  //cdx = grub_inb(0x6a);
   grub_command_execute ("normal", 0, 0);
+  cdx = grub_inb(0x6b);
 }
+
 
 static void
 reclaim_module_space (void)
@@ -268,10 +282,12 @@ grub_main (void)
   /* First of all, initialize the machine.  */
   grub_machine_init ();
 
-  grub_boot_time ("After machine init.");
+  grub_boot_time ("After machine init.\n");
+  //cdx = grub_inb(0x62);
 
   /* This breaks flicker-free boot on EFI systems, so disable it there. */
 #ifndef GRUB_MACHINE_EFI
+#error  GRUB_MACHINE_EFI:cuidexuan
   /* Hello.  */
   grub_setcolorstate (GRUB_TERM_COLOR_HIGHLIGHT);
   grub_printf ("Welcome to GRUB!\n\n");
@@ -280,19 +296,23 @@ grub_main (void)
 
   /* Init verifiers API. */
   grub_verifiers_init ();
+  //cdx = grub_inb(0x63);
 
   grub_load_config ();
+  //cdx = grub_inb(0x64);
 
-  grub_boot_time ("Before loading embedded modules.");
+  grub_boot_time ("Before loading embedded modules.\n");
 
   /* Load pre-loaded modules and free the space.  */
+  //cdx = grub_inb(0x65);
   grub_register_exported_symbols ();
+  //cdx = grub_inb(0x66);
 #ifdef GRUB_LINKER_HAVE_INIT
   grub_arch_dl_init_linker ();
 #endif
   grub_load_modules ();
 
-  grub_boot_time ("After loading embedded modules.");
+  grub_boot_time ("After loading embedded modules.\n");
 
   /* It is better to set the root device as soon as possible,
      for convenience.  */
@@ -303,17 +323,21 @@ grub_main (void)
   /* Reclaim space used for modules.  */
   reclaim_module_space ();
 
-  grub_boot_time ("After reclaiming module space.");
+  grub_boot_time ("After reclaiming module space.\n");
 
   grub_register_core_commands ();
 
-  grub_boot_time ("Before execution of embedded config.");
+  grub_boot_time ("Before execution of embedded config.\n");
 
+  //cdx = grub_inb(0x67);
   if (load_config)
     grub_parser_execute (load_config);
 
-  grub_boot_time ("After execution of embedded config. Attempt to go to normal mode");
+  grub_boot_time ("After execution of embedded config. Attempt to go to normal mode\n");
 
+  //cdx = grub_inb(0x68);
   grub_load_normal_mode ();
+  //cdx = grub_inb(0x69);
   grub_rescue_run ();
+  cdx = grub_inb(0x99);
 }

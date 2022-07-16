@@ -580,6 +580,7 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot, int *notify_boot)
   int timeout;
   enum timeout_style timeout_style;
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   *notify_boot = 1;
 
   default_entry = get_entry_number (menu, "default");
@@ -598,6 +599,7 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot, int *notify_boot)
     grub_env_unset ("timeout_style");
 
   timeout_style = get_timeout_style ();
+  grub_printf("cdx: %s, line %d, timeout_style=%d\n", __func__, __LINE__, timeout_style);
 
   if (timeout_style == TIMEOUT_STYLE_COUNTDOWN
       || timeout_style == TIMEOUT_STYLE_HIDDEN)
@@ -661,6 +663,7 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot, int *notify_boot)
     }
 
   current_entry = default_entry;
+  grub_printf("cdx: %s, line %d, current_e=%d\n", __func__, __LINE__, current_entry);
 
  refresh:
   menu_init (current_entry, menu, nested);
@@ -669,19 +672,23 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot, int *notify_boot)
   saved_time = grub_get_time_ms ();
 
   timeout = grub_menu_get_timeout ();
+  grub_printf("cdx: %s, line %d: %ld, %d\n", __func__, __LINE__, saved_time, timeout);
 
   if (timeout > 0)
     menu_print_timeout (timeout);
   else
     clear_timeout ();
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   while (1)
     {
       int c;
       timeout = grub_menu_get_timeout ();
+      grub_printf("cdx: %s, line %d, timeout=%d\n", __func__, __LINE__, timeout);
 
       if (grub_normal_exit_level)
 	return -1;
+      grub_printf("cdx: %s, line %d, timeout=%d\n", __func__, __LINE__, timeout);
 
       if (timeout > 0 && has_second_elapsed (&saved_time))
 	{
@@ -690,6 +697,7 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot, int *notify_boot)
 	  menu_print_timeout (timeout);
 	}
 
+      grub_printf("cdx: %s, line %d, timeout=%d\n", __func__, __LINE__, timeout);
       if (timeout == 0)
 	{
 	  grub_env_unset ("timeout");
@@ -698,8 +706,10 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot, int *notify_boot)
 	  return default_entry;
 	}
 
+      grub_printf("cdx: %s, line %d, timeout=%d\n", __func__, __LINE__, timeout);
       c = grub_getkey_noblock ();
 
+      grub_printf("cdx: %s, line %d, timeout=%d\n", __func__, __LINE__, timeout);
       /* Negative values are returned on error. */
       if ((c != GRUB_TERM_NO_KEY) && (c > 0))
 	{

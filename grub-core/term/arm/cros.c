@@ -53,6 +53,7 @@ grub_cros_keyboard_getkey (struct grub_term_input *term __attribute__ ((unused))
 {
   struct grub_cros_ec_keyscan scan;
   int i, j;
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   if (grub_cros_ec_scan_keyboard (cros_ec, &scan) < 0)
     return GRUB_TERM_NO_KEY;
   for (i = 0; i < GRUB_CROS_EC_KEYSCAN_COLS; i++)

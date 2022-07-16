@@ -78,6 +78,7 @@ struct grub_terminfo_output_state uboot_console_terminfo_output = {
 
 static struct grub_term_input uboot_console_term_input = {
   .name = "console",
+  .name2 = "console-11",
   .init = uboot_console_init_input,
   .getkey = grub_terminfo_getkey,
   .data = &uboot_console_terminfo_input

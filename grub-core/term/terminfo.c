@@ -595,6 +595,7 @@ grub_terminfo_getkey (struct grub_term_input *termi)
 {
   struct grub_terminfo_input_state *data
     = (struct grub_terminfo_input_state *) (termi->data);
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   if (data->npending)
     {
       int ret;

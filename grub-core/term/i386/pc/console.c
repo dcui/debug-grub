@@ -209,6 +209,7 @@ grub_console_getkey (struct grub_term_input *term __attribute__ ((unused)))
   struct grub_bios_int_registers regs;
   unsigned i;
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   /*
    * Due to a bug in apple's bootcamp implementation, INT 16/AH = 0 would
    * cause the machine to hang at the second keystroke. However, we can
@@ -276,6 +277,7 @@ grub_console_setcolorstate (struct grub_term_output *term
 static struct grub_term_input grub_console_term_input =
   {
     .name = "console",
+    .name2 = "console-8",
     .getkey = grub_console_getkey,
     .getkeystatus = grub_console_getkeystatus
   };

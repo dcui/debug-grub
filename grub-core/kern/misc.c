@@ -114,6 +114,7 @@ grub_printf (const char *fmt, ...)
   int ret;
 
 #if defined(MM_DEBUG) && !defined(GRUB_UTIL) && !defined (GRUB_MACHINE_EMU)
+#error aaaaaaaaaaaaaaaa
   /*
    * To prevent infinite recursion when grub_mm_debug is on, disable it
    * when calling grub_vprintf(). One such call loop is:
@@ -134,6 +135,7 @@ grub_printf (const char *fmt, ...)
   va_end (ap);
 
 #if defined(MM_DEBUG) && !defined(GRUB_UTIL) && !defined (GRUB_MACHINE_EMU)
+#error bbbbbbbbbbbbbbbbb
   grub_mm_debug = grub_mm_debug_save;
 #endif
 
@@ -245,6 +247,62 @@ grub_real_dprintf (const char *file, const int line, const char *condition,
 
 #define PREALLOC_SIZE 255
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+typedef unsigned int u32;
+typedef unsigned long long u64;
+
+#define TDX_HYPERCALL_STANDARD  0
+#define tdcall   ".byte 0x66,0x0f,0x01,0xcc"
+#define EXIT_REASON_MSR_WRITE   32
+
+
+static int cdx_write_msr(u64 str)
+{
+	int ret;
+
+        asm volatile(
+                "xor %%eax, %%eax\n\t"
+
+		"movq $0, %%r10\n\t"
+		"movq $32, %%r11\n\t"
+		"movq $0x400000C1, %%r12\n\t"
+		"movq %1, %%r13\n\t"
+
+                "movl $0x3c00,%%ecx\n\t" //R10~R13
+
+		tdcall "\n\t"
+
+		"testq %%rax, %%rax\n\t"
+		"je 2f\n\t"
+"1:\t		int $0x3\n\t"
+"2:\t		movq %%r10, %%rax\n\t"
+		"testq %%rax, %%rax\n\t"
+		"je 4f\n\t"
+"3:\t		int $0x3\n\t"
+"4:\t		\n\t"
+
+                : "=&a" (ret)
+		: "r" (str)
+		: "%r10", "%r11", "%r12", "%r13", "ecx", "memory");
+
+        return ret;
+}
+
+static void cdx_print(const char *msg)
+{
+	const char *p = msg;
+	u64 ch;
+
+	while (*p) {
+		ch = *p;
+		cdx_write_msr(ch);
+		p++;
+	}
+
+	//return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
 int
 grub_vprintf (const char *fmt, va_list ap)
 {
@@ -274,7 +332,8 @@ grub_vprintf (const char *fmt, va_list ap)
 
   free_printf_args (&args);
 
-  grub_xputs (curbuf);
+  //cdx: grub_xputs (curbuf);
+   cdx_print(curbuf);
 
   if (curbuf != buf)
     grub_free (curbuf);

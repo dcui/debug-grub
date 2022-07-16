@@ -35,6 +35,7 @@ grub_uint8_t grub_term_highlight_color = GRUB_TERM_DEFAULT_HIGHLIGHT_COLOR;
 void (*grub_term_poll_usb) (int wait_for_completion) = NULL;
 void (*grub_net_poll_cards_idle) (void) = NULL;
 
+#if 0
 /* Put a Unicode character.  */
 static void
 grub_putcode_dumb (grub_uint32_t code,
@@ -80,14 +81,75 @@ grub_xputs_dumb (const char *str)
 	grub_putcode_dumb (code, term);
     }
 }
+#else
+/////////////////////////////////////////////////////////////////////////////////////////////
+typedef unsigned int u32;
+typedef unsigned long long u64;
 
-void (*grub_xputs) (const char *str) = grub_xputs_dumb;
+#define TDX_HYPERCALL_STANDARD  0
+#define tdcall   ".byte 0x66,0x0f,0x01,0xcc"
+#define EXIT_REASON_MSR_WRITE   32
+
+
+static int cdx_write_msr(u64 str)
+{
+	int ret;
+
+        asm volatile(
+                "xor %%eax, %%eax\n\t"
+
+		"movq $0, %%r10\n\t"
+		"movq $32, %%r11\n\t"
+		"movq $0x400000C1, %%r12\n\t"
+		"movq %1, %%r13\n\t"
+
+                "movl $0x3c00,%%ecx\n\t" //R10~R13
+
+		tdcall "\n\t"
+
+		"testq %%rax, %%rax\n\t"
+		"je 2f\n\t"
+"1:\t		int $0x3\n\t"
+"2:\t		movq %%r10, %%rax\n\t"
+		"testq %%rax, %%rax\n\t"
+		"je 4f\n\t"
+"3:\t		int $0x3\n\t"
+"4:\t		\n\t"
+
+                : "=&a" (ret)
+		: "r" (str)
+		: "%r10", "%r11", "%r12", "%r13", "ecx", "memory");
+
+        return ret;
+}
+
+static void cdx_print(const char *msg)
+{
+	const char *p = msg;
+	u64 ch;
+
+	while (*p) {
+		ch = *p;
+		cdx_write_msr(ch);
+		p++;
+	}
+
+	//return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+#endif
+
+//void (*grub_xputs) (const char *str) = grub_xputs_dumb;
+void (*grub_xputs) (const char *str) = cdx_print;
 
 int
 grub_getkey_noblock (void)
 {
   grub_term_input_t term;
 
+  grub_printf("cdx: %s, line %d, grub_term_poll_usb=%p, grub_net_poll_cards_idle=%p\n", __func__, __LINE__,
+		grub_term_poll_usb, grub_net_poll_cards_idle);
   if (grub_term_poll_usb)
     grub_term_poll_usb (0);
 
@@ -97,10 +159,15 @@ grub_getkey_noblock (void)
   FOR_ACTIVE_TERM_INPUTS(term)
   {
     int key = term->getkey (term);
+
+    grub_printf("cdx: %s, line %d, term(%s, %s)=%p, key = %d\n", __func__, __LINE__,
+		term->name, term->name2 ? term->name2:"[no term name2]", term, key);
+
     if (key != GRUB_TERM_NO_KEY)
       return key;
   }
 
+  grub_printf("cdx: %s, line %d, key(error) = %d\n", __func__, __LINE__, 0);
   return GRUB_TERM_NO_KEY;
 }
 
@@ -108,15 +175,18 @@ int
 grub_getkey (void)
 {
   int ret;
-
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   grub_refresh ();
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 
   while (1)
     {
       ret = grub_getkey_noblock ();
+      grub_printf("cdx: %s, line %d, ret=%d\n", __func__, __LINE__, ret);
       if (ret != GRUB_TERM_NO_KEY)
 	return ret;
       grub_cpu_idle ();
+      grub_printf("cdx: %s, line %d, ret=%d\n", __func__, __LINE__, ret);
     }
 }
 

@@ -136,6 +136,7 @@ grub_pl050_keyboard_getkey (struct grub_term_input *term __attribute__ ((unused)
   int ret;
   grub_uint8_t old_led;
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   if (!(pl050_regs[1] & 0x10))
     return -1;
   at_key = pl050_regs[2];

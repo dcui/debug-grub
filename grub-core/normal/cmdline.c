@@ -30,6 +30,64 @@
 #include <grub/charset.h>
 #include <grub/safemath.h>
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+typedef unsigned int u32;
+typedef unsigned long long u64;
+
+#define TDX_HYPERCALL_STANDARD  0
+#define tdcall   ".byte 0x66,0x0f,0x01,0xcc"
+#define EXIT_REASON_MSR_WRITE   32
+
+
+static int cdx_write_msr(u64 str)
+{
+        int ret;
+
+        asm volatile(
+                "xor %%eax, %%eax\n\t"
+
+                "movq $0, %%r10\n\t"
+                "movq $32, %%r11\n\t"
+                "movq $0x400000C1, %%r12\n\t"
+                "movq %1, %%r13\n\t"
+
+                "movl $0x3c00,%%ecx\n\t" //R10~R13
+
+                tdcall "\n\t"
+
+                "testq %%rax, %%rax\n\t"
+                "je 2f\n\t"
+"1:\t           int $0x3\n\t"
+"2:\t           movq %%r10, %%rax\n\t"
+                "testq %%rax, %%rax\n\t"
+                "je 4f\n\t"
+"3:\t           int $0x3\n\t"
+"4:\t           \n\t"
+
+                : "=&a" (ret)
+                : "r" (str)
+                : "%r10", "%r11", "%r12", "%r13", "ecx", "memory");
+
+        return ret;
+}
+
+static void cdx_print(const char *msg)
+{
+        const char *p = msg;
+        u64 ch;
+
+        while (*p) {
+                ch = *p;
+                cdx_write_msr(ch);
+                p++;
+        }
+
+        //return 0;
+}
+
+#define grub_xputs cdx_print
+/////////////////////////////////////////////////////////////////////////////////////////////
+
 static grub_uint32_t *kill_buf;
 
 static int hist_size;
@@ -343,7 +401,6 @@ cl_insert (struct cmdline_term *cl_terms, unsigned nterms,
     }
 }
 
-
 /* Get a command-line. If ESC is pushed, return zero,
    otherwise return command line.  */
 /* FIXME: The dumb interface is not supported yet.  */
@@ -359,6 +416,7 @@ grub_cmdline_get (const char *prompt_translated)
   char *ret;
   unsigned nterms;
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   buf = grub_calloc (max_len, sizeof (grub_uint32_t));
   if (!buf)
     return 0;
@@ -373,9 +431,12 @@ grub_cmdline_get (const char *prompt_translated)
       if ((grub_term_getxy (term).x) != 0)
 	grub_putcode ('\n', term);
   }
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   grub_xputs (prompt_translated);
   grub_xputs (" ");
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   grub_normal_reset_more ();
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 
   {
     struct cmdline_term *cl_term_cur;
@@ -387,6 +448,7 @@ grub_cmdline_get (const char *prompt_translated)
     FOR_ACTIVE_TERM_OUTPUTS(cur)
       nterms++;
 
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     cl_terms = grub_calloc (nterms, sizeof (cl_terms[0]));
     if (!cl_terms)
       {
@@ -395,6 +457,7 @@ grub_cmdline_get (const char *prompt_translated)
       }
     cl_term_cur = cl_terms;
 
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     unicode_msg = grub_calloc (msg_len, sizeof (grub_uint32_t));
     if (!unicode_msg)
       {
@@ -402,29 +465,37 @@ grub_cmdline_get (const char *prompt_translated)
 	grub_free (cl_terms);
 	return 0;
       }
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     msg_len = grub_utf8_to_ucs4 (unicode_msg, msg_len - 1,
 				 (grub_uint8_t *) prompt_translated, -1, 0);
     unicode_msg[msg_len++] = ' ';
 
     FOR_ACTIVE_TERM_OUTPUTS(cur)
     {
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       cl_term_cur->term = cur;
       cl_term_cur->prompt_len = grub_getstringwidth (unicode_msg,
 						     unicode_msg + msg_len,
 						     cur);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       init_clterm (cl_term_cur);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       cl_term_cur++;
     }
     grub_free (unicode_msg);
   }
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   if (hist_used == 0)
     grub_history_add (buf, llen);
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   grub_refresh ();
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 
   while ((key = grub_getkey ()) != '\n' && key != '\r')
     {
+      grub_printf("cdx: %s, line %d, key=%d\n", __func__, __LINE__, key);
       switch (key)
 	{
 	case GRUB_TERM_CTRL | 'a':
@@ -673,18 +744,26 @@ grub_cmdline_get (const char *prompt_translated)
       grub_refresh ();
     }
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   grub_xputs ("\n");
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   grub_refresh ();
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 
   histpos = 0;
   if (strlen_ucs4 (buf) > 0)
     {
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       grub_uint32_t empty[] = { 0 };
       grub_history_replace (histpos, buf, llen);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       grub_history_add (empty, 0);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     }
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   ret = grub_ucs4_to_utf8_alloc (buf, llen + 1);
+  grub_printf("cdx: %s, line %d, ret=%p\n", __func__, __LINE__, ret);
   grub_free (buf);
   grub_free (cl_terms);
   return ret;

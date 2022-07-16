@@ -78,6 +78,7 @@ grub_tsc_calibrate_from_pit (void)
   grub_tsc_rate = 0;
   if (end_tsc > start_tsc)
     grub_tsc_rate = grub_divmod64 ((55ULL << 32), end_tsc - start_tsc, 0);
+  //cdx
   if (grub_tsc_rate == 0)
     return 0;
   return 1;

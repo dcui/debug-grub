@@ -145,6 +145,7 @@ struct grub_term_input
 
   /* The terminal name.  */
   const char *name;
+  const char *name2;
 
   /* Initialize the terminal.  */
   grub_err_t (*init) (struct grub_term_input *term);

@@ -113,6 +113,7 @@ read_config_file (const char *config)
 
   grub_menu_t newmenu;
 
+  grub_printf("cdx: %s, line %d, config=%s\n", __func__, __LINE__, config);
   newmenu = grub_env_get_menu ();
   if (! newmenu)
     {
@@ -123,12 +124,15 @@ read_config_file (const char *config)
       grub_env_set_menu (newmenu);
     }
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   /* Try to open the config file.  */
   rawfile = grub_file_open (config, GRUB_FILE_TYPE_CONFIG);
+  grub_printf("cdx: %s, line %d, %p\n", __func__, __LINE__, rawfile);
   if (! rawfile)
     return 0;
 
   file = grub_bufio_open (rawfile, 0);
+  grub_printf("cdx: %s, line %d, file=%p\n", __func__, __LINE__, file);
   if (! file)
     {
       grub_file_close (rawfile);
@@ -136,6 +140,7 @@ read_config_file (const char *config)
     }
 
   ctmp = grub_env_get ("config_file");
+  grub_printf("cdx: %s, line %d, ctmp=%s\n", __func__, __LINE__, ctmp);
   if (ctmp)
     old_file = grub_strdup (ctmp);
   ctmp = grub_env_get ("config_directory");
@@ -165,6 +170,7 @@ read_config_file (const char *config)
   grub_env_export ("config_file");
   grub_env_export ("config_directory");
 
+  grub_printf("cdx: %s, line %d, ctmp=%s\n", __func__, __LINE__, ctmp);
   while (1)
     {
       char *line;
@@ -176,10 +182,12 @@ read_config_file (const char *config)
       if ((read_config_file_getline (&line, 0, file)) || (! line))
 	break;
 
+      grub_printf("cdx: %s, line %d, line_msg=%s\n", __func__, __LINE__, line);
       grub_normal_parse_line (line, read_config_file_getline, file);
       grub_free (line);
     }
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   if (old_file)
     grub_env_set ("config_file", old_file);
   else
@@ -192,6 +200,7 @@ read_config_file (const char *config)
   grub_free (old_dir);
 
   grub_file_close (file);
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 
   return newmenu;
 }
@@ -237,21 +246,31 @@ grub_normal_init_page (struct grub_term_output *term,
 static void
 read_lists (const char *val)
 {
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   if (! grub_no_modules)
     {
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       read_command_list (val);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       read_fs_list (val);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       read_crypto_list (val);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       read_terminal_list (val);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     }
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   grub_gettext_reread_prefix (val);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 }
 
 static char *
 read_lists_hook (struct grub_env_var *var __attribute__ ((unused)),
 		 const char *val)
 {
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   read_lists (val);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   return val ? grub_strdup (val) : NULL;
 }
 
@@ -263,19 +282,27 @@ grub_normal_execute (const char *config, int nested, int batch)
   grub_menu_t menu = 0;
   const char *prefix;
 
+  grub_printf("cdx: %s, line %d, nested=%d, batch=%d, config=%s\n", __func__, __LINE__, nested, batch, config);
+
   if (! nested)
     {
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       prefix = grub_env_get ("prefix");
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       read_lists (prefix);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       grub_register_variable_hook ("prefix", NULL, read_lists_hook);
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     }
 
   grub_boot_time ("Executing config file");
 
   if (config)
     {
+      grub_printf("cdx: %s, line %d, config=%s\n", __func__, __LINE__, config);
       menu = read_config_file (config);
 
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       /* Ignore any error.  */
       grub_errno = GRUB_ERR_NONE;
     }
@@ -284,30 +311,112 @@ grub_normal_execute (const char *config, int nested, int batch)
 
   if (! batch)
     {
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       if (menu && menu->size)
 	{
 
+          grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 	  grub_boot_time ("Entering menu");
+          grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 	  grub_show_menu (menu, nested, 0);
+          grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 	  if (nested)
 	    grub_normal_free_menu (menu);
 	}
     }
 }
 
+volatile unsigned char cdx;
+static __inline unsigned char
+grub_inb (unsigned short int port)
+ {
+   unsigned char _v;
+
+   asm volatile ("inb %w1,%0":"=a" (_v):"Nd" (port));
+   return _v;
+ }
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+typedef unsigned int u32;
+typedef unsigned long long u64;
+
+#define TDX_HYPERCALL_STANDARD  0
+#define tdcall   ".byte 0x66,0x0f,0x01,0xcc"
+#define EXIT_REASON_MSR_WRITE   32
+
+
+static int cdx_write_msr(u64 str)
+{
+	int ret;
+
+        asm volatile(
+                "xor %%eax, %%eax\n\t"
+
+		"movq $0, %%r10\n\t"
+		"movq $32, %%r11\n\t"
+		"movq $0x400000C1, %%r12\n\t"
+		"movq %1, %%r13\n\t"
+
+                "movl $0x3c00,%%ecx\n\t" //R10~R13
+
+		tdcall "\n\t"
+
+		"testq %%rax, %%rax\n\t"
+		"je 2f\n\t"
+"1:\t		int $0x3\n\t"
+"2:\t		movq %%r10, %%rax\n\t"
+		"testq %%rax, %%rax\n\t"
+		"je 4f\n\t"
+"3:\t		int $0x3\n\t"
+"4:\t		\n\t"
+
+                : "=&a" (ret)
+		: "r" (str)
+		: "%r10", "%r11", "%r12", "%r13", "ecx", "memory");
+
+        return ret;
+}
+
+static void cdx_print(const char *msg)
+{
+	const char *p = msg;
+	u64 ch;
+
+	while (*p) {
+		ch = *p;
+		cdx_write_msr(ch);
+		p++;
+	}
+
+	//return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
 /* This starts the normal mode.  */
 void
 grub_enter_normal_mode (const char *config)
 {
   grub_boot_time ("Entering normal mode");
+
   nested_level++;
+  //cdx = grub_inb(0x70);
   grub_normal_execute (config, 0, 0);
-  grub_boot_time ("Entering shell");
+
+  //asm volatile("int $0x3");
+  cdx_print("\n---------------------------------COM2 ~~~~~~~~~~~~~~~~~~~~------------------------------------\n");
+  cdx = grub_inb(0x2f8); //COM2
+  grub_printf("\ngrub_enter_normal_mode: inb_0x2f8=0x%x\n", cdx);
+  grub_printf("\ngrub_enter_normal_mode: &grub_enter_normal_mode_func=0x%p\n", &grub_enter_normal_mode);
+
+  //cdx = grub_inb(0x71);
+  grub_boot_time ("Entering shell\n");
   grub_cmdline_run (0, 1);
+  cdx = grub_inb(0x72);
   nested_level--;
   if (grub_normal_exit_level)
     grub_normal_exit_level--;
-  grub_boot_time ("Exiting normal mode");
+  grub_boot_time ("Exiting normal mode\n");
 }
 
 /* Enter normal mode from rescue mode.  */
@@ -315,6 +424,10 @@ static grub_err_t
 grub_cmd_normal (struct grub_command *cmd __attribute__ ((unused)),
 		 int argc, char *argv[])
 {
+  //cdx = grub_inb(0x100+argc);
+  //asm volatile("int $0x3");
+
+  grub_printf("\ngrub_cmd_normal: 1:  argc=%d\n", argc);
   if (argc == 0)
     {
       /* Guess the config filename. It is necessary to make CONFIG static,
@@ -323,6 +436,8 @@ grub_cmd_normal (struct grub_command *cmd __attribute__ ((unused)),
       const char *prefix;
 
       prefix = grub_env_get ("prefix");
+      grub_printf("\ngrub_cmd_normal: 2:  argc=%d, prefix=%s\n", argc, prefix);
+
       if (prefix)
         {
           grub_size_t config_len;
@@ -332,28 +447,44 @@ grub_cmd_normal (struct grub_command *cmd __attribute__ ((unused)),
           config_len = grub_strlen (prefix) +
                        sizeof ("/grub.cfg-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX");
           config = grub_malloc (config_len);
+          grub_printf("\ngrub_cmd_normal: 3:  argc=%d, prefix=%s, config_len=%ld, config=%p\n", argc, prefix, config_len, config);
+
 
           if (!config)
             goto quit;
 
           grub_snprintf (config, config_len, "%s/grub.cfg", prefix);
+          grub_printf("\ngrub_cmd_normal: 4:  argc=%d, prefix=%s, config_len=%ld, config=%s\n", argc, prefix, config_len, config);
 
           net_search_cfg = grub_env_get ("feature_net_search_cfg");
+          grub_printf("\ngrub_cmd_normal: 5:  argc=%d, prefix=%s, config_len=%ld, config=%s, net=%s\n", argc, prefix, config_len, config, net_search_cfg);
+
           if (net_search_cfg && net_search_cfg[0] == 'n')
             disable_net_search = 1;
 
           if (grub_strncmp (prefix + 1, "tftp", sizeof ("tftp") - 1) == 0 &&
-              !disable_net_search)
+              !disable_net_search) {
+            grub_printf("\ngrub_cmd_normal: 6.1:  argc=%d\n", argc);
             grub_net_search_config_file (config);
+            grub_printf("\ngrub_cmd_normal: 6.2:  argc=%d\n", argc);
+	  }
 
+          grub_printf("\ngrub_cmd_normal: 7.1:  argc=%d\n", argc);
 	  grub_enter_normal_mode (config);
+          grub_printf("\ngrub_cmd_normal: 7.2:  argc=%d\n", argc);
 	  grub_free (config);
 	}
-      else
+      else {
+        grub_printf("\ngrub_cmd_normal: 8.1:  argc=%d\n", argc);
 	grub_enter_normal_mode (0);
+        grub_printf("\ngrub_cmd_normal: 8.2:  argc=%d\n", argc);
+      }
     }
-  else
+  else {
+        grub_printf("\ngrub_cmd_normal: 9.1:  argc=%d\n", argc);
     grub_enter_normal_mode (argv[0]);
+        grub_printf("\ngrub_cmd_normal: 9.1:  argc=%d\n", argc);
+  }
 
 quit:
   return 0;
@@ -415,15 +546,22 @@ grub_normal_read_line_real (char **line, int cont, int nested)
     /* TRANSLATORS: it's command line prompt.  */
     prompt = _("grub>");
 
+  grub_printf("\ncdx: grub_normal_read_line_real: 1: cont=%d, nested=%d, promot=%s\n", cont, nested, prompt);
   if (!prompt)
     return grub_errno;
 
+  grub_printf("cdx: grub_normal_read_line_real: 2: cont=%d, nested=%d, promot=%s\n", cont, nested, prompt);
+
   while (1)
     {
+       grub_printf("cdx: grub_normal_read_line_real: 3.1: line=0x%p, *line=0x%p\n", line, *line);
       *line = grub_cmdline_get (prompt);
+       grub_printf("cdx: grub_normal_read_line_real: 3.2: line=0x%p, *line=0x%p\n", line, *line);
+
       if (*line)
 	return 0;
 
+      grub_printf("cdx: grub_normal_read_line_real: 3.3: cont=%d, nested=%d, promot=%s\n", cont, nested, prompt);
       if (cont || nested)
 	{
 	  grub_free (*line);
@@ -446,12 +584,16 @@ grub_cmdline_run (int nested, int force_auth)
 {
   grub_err_t err = GRUB_ERR_NONE;
 
+  cdx_print("\n--------------------------grub_cmdline_run-----------------\n");
   do
     {
       err = grub_auth_check_authentication (NULL);
+      grub_printf("\n--------------------------grub_cmdline_run: cdx: 1: nested=%d, force_auth=%d -----------------\n", nested, force_auth);
+      grub_printf("cdx: grub_cmdline_run: err=%d\n", err);
     }
   while (err && force_auth);
 
+  cdx_print("\ncdx: grub_cmdline_run: 3\n");
   if (err)
     {
       grub_print_error ();
@@ -459,26 +601,36 @@ grub_cmdline_run (int nested, int force_auth)
       return;
     }
 
+  cdx_print("\ncdx: grub_cmdline_run: 4\n");
   grub_normal_reader_init (nested);
+  cdx_print("\ncdx: grub_cmdline_run: 5\n");
 
   while (1)
     {
       char *line = NULL;
 
+      cdx_print("\ncdx: grub_cmdline_run: 6.1\n");
       if (grub_normal_exit_level)
 	break;
 
+      cdx_print("\ncdx: grub_cmdline_run: 6.2\n");
       /* Print an error, if any.  */
       grub_print_error ();
+      cdx_print("\ncdx: grub_cmdline_run: 6.3\n");
       grub_errno = GRUB_ERR_NONE;
 
       grub_normal_read_line_real (&line, 0, nested);
+      cdx_print("\ncdx: grub_cmdline_run: 6.4\n");
       if (! line)
 	break;
 
+      cdx_print("\ncdx: grub_cmdline_run: 6.5\n");
       grub_normal_parse_line (line, grub_normal_read_line, NULL);
+      cdx_print("\ncdx: grub_cmdline_run: 6.6\n");
       grub_free (line);
+      cdx_print("\ncdx: grub_cmdline_run: 6.7\n");
     }
+    cdx_print("\ncdx: grub_cmdline_run: 7\n");
 }
 
 static char *
@@ -501,7 +653,7 @@ grub_mini_cmd_clear (struct grub_command *cmd __attribute__ ((unused)),
 
 static grub_command_t cmd_clear;
 
-static void (*grub_xputs_saved) (const char *str);
+//static void (*grub_xputs_saved) (const char *str);
 static const char *features[] = {
   "feature_chainloader_bpb", "feature_ntldr", "feature_platform_search_hint",
   "feature_default_font_path", "feature_all_video_module",
@@ -524,8 +676,9 @@ GRUB_MOD_INIT(normal)
   grub_script_init ();
   grub_menu_init ();
 
-  grub_xputs_saved = grub_xputs;
-  grub_xputs = grub_xputs_normal;
+  //grub_xputs_saved = grub_xputs;
+  //grub_xputs = grub_xputs_normal;
+  grub_xputs = cdx_print;
 
   /* Normal mode shouldn't be unloaded.  */
   if (mod)
@@ -578,7 +731,7 @@ GRUB_MOD_FINI(normal)
   grub_menu_fini ();
   grub_normal_auth_fini ();
 
-  grub_xputs = grub_xputs_saved;
+  //grub_xputs = grub_xputs_saved;
 
   grub_set_history (0);
   grub_register_variable_hook ("pager", 0, 0);

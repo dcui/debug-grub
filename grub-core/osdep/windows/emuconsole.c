@@ -84,6 +84,7 @@ const unsigned windows_codes[] =
 static int
 grub_console_getkey (struct grub_term_input *term __attribute__ ((unused)))
 {
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   while (1)
     {
       DWORD nev;
@@ -264,6 +265,7 @@ grub_console_fini_input (struct grub_term_input *term
 static struct grub_term_input grub_console_term_input =
   {
     .name = "console",
+    .name2 = "console-2",
     .getkey = grub_console_getkey,
     .init = grub_console_init_input,
     .fini = grub_console_fini_input,

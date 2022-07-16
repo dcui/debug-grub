@@ -73,6 +73,7 @@ static void
 grub_env_remove (struct grub_env_var *var)
 {
   /* Remove the entry from the variable table.  */
+  grub_printf("cdx: grub_env_set: removing %s (%s)\n", var->name, var->value);
   *var->prevp = var->next;
   if (var->next)
     var->next->prevp = var->prevp;
@@ -85,6 +86,7 @@ grub_env_set (const char *name, const char *val)
 
   /* If the variable does already exist, just update the variable.  */
   var = grub_env_find (name);
+  grub_printf("cdx: grub_env_set: %s = %s, existing=0x%p\n", name, val, var);
   if (var)
     {
       char *old = var->value;

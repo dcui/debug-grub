@@ -440,12 +440,14 @@ GRUB_MOD_INIT(serial)
   grub_ns8250_init ();
 #endif
 #ifdef GRUB_MACHINE_IEEE1275
+#error bbb
   grub_ofserial_init ();
 #endif
 #ifdef GRUB_MACHINE_EFI
   grub_efiserial_init ();
 #endif
 #ifdef GRUB_MACHINE_ARC
+#error ddd
   grub_arcserial_init ();
 #endif
 }

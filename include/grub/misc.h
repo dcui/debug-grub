@@ -299,7 +299,7 @@ grub_strtol (const char * restrict str, const char ** const restrict end, int ba
       return (long) magnitude;
     }
 }
-
+//int cdx_print(const char *msg);
 char *EXPORT_FUNC(grub_strdup) (const char *s) WARN_UNUSED_RESULT;
 char *EXPORT_FUNC(grub_strndup) (const char *s, grub_size_t n) WARN_UNUSED_RESULT;
 void *EXPORT_FUNC(grub_memset) (void *s, int c, grub_size_t n);
@@ -491,8 +491,9 @@ void EXPORT_FUNC(grub_real_boot_time) (const char *file,
 				       const int line,
 				       const char *fmt, ...) __attribute__ ((format (GNU_PRINTF, 3, 4)));
 #define grub_boot_time(...) grub_real_boot_time(GRUB_FILE, __LINE__, __VA_ARGS__)
+#error not used jjjjjjjjjjjjjjjjjjjj
 #else
-#define grub_boot_time(...)
+#define grub_boot_time  grub_printf
 #endif
 
 #define grub_max(a, b) (((a) > (b)) ? (a) : (b))

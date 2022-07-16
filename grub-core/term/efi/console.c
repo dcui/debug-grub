@@ -208,29 +208,41 @@ const unsigned efi_codes[] =
 static int
 grub_efi_translate_key (grub_efi_input_key_t key)
 {
+  grub_printf("cdx: %s, line %d \n", __func__, __LINE__);
   if (key.scan_code == 0)
     {
       /* Some firmware implementations use VT100-style codes against the spec.
 	 This is especially likely if driven by serial.
        */
+      grub_printf("cdx: %s, line %d \n", __func__, __LINE__);
+
       if (key.unicode_char < 0x20 && key.unicode_char != 0
 	  && key.unicode_char != '\t' && key.unicode_char != '\b'
-	  && key.unicode_char != '\n' && key.unicode_char != '\r')
+	  && key.unicode_char != '\n' && key.unicode_char != '\r') {
+        grub_printf("cdx: %s, line %d \n", __func__, __LINE__);
 	return GRUB_TERM_CTRL | (key.unicode_char - 1 + 'a');
-      else
+      } else {
+        grub_printf("cdx: %s, line %d \n", __func__, __LINE__);
 	return key.unicode_char;
+	}
     }
   /* Some devices send enter with scan_code 0x0d (F3) and unicode_char 0x0d. */
-  else if (key.scan_code == '\r' && key.unicode_char == '\r')
+  else if (key.scan_code == '\r' && key.unicode_char == '\r') {
+    grub_printf("cdx: %s, line %d \n", __func__, __LINE__);
     return key.unicode_char;
-  else if (key.scan_code < ARRAY_SIZE (efi_codes))
+  } else if (key.scan_code < ARRAY_SIZE (efi_codes)) {
+    grub_printf("cdx: %s, line %d \n", __func__, __LINE__);
     return efi_codes[key.scan_code];
+  }
 
   if ((key.unicode_char >= 0x20 && key.unicode_char <= 0x7f)
       || key.unicode_char == '\t' || key.unicode_char == '\b'
-      || key.unicode_char == '\n' || key.unicode_char == '\r')
+      || key.unicode_char == '\n' || key.unicode_char == '\r') {
+    grub_printf("cdx: %s, line %d \n", __func__, __LINE__);
     return key.unicode_char;
+  }
 
+  grub_printf("cdx: %s, line %d \n", __func__, __LINE__);
   return GRUB_TERM_NO_KEY;
 }
 
@@ -241,8 +253,10 @@ grub_console_getkey_con (struct grub_term_input *term __attribute__ ((unused)))
   grub_efi_input_key_t key;
   grub_efi_status_t status;
 
+  grub_printf("cdx: %s, line %d: %d, data=%p\n", __func__, __LINE__, grub_efi_is_finished, term->data);
   i = grub_efi_system_table->con_in;
   status = efi_call_2 (i->read_key_stroke, i, &key);
+  grub_printf("cdx: %s, line %d: %d, data=%p, status=%ld\n", __func__, __LINE__, grub_efi_is_finished, term->data, status);
 
   if (status != GRUB_EFI_SUCCESS)
     return GRUB_TERM_NO_KEY;
@@ -265,18 +279,24 @@ grub_console_read_key_stroke (
   grub_efi_status_t status;
   int key;
 
+  grub_printf("cdx: %s, line %d: %d, data=%p\n", __func__, __LINE__, grub_efi_is_finished, text_input);
   if (!text_input)
     return GRUB_ERR_EOF;
 
   key = grub_efi_translate_key (key_data.key);
+  grub_printf("cdx: %s, line %d: %d, data=%p, key=%d\n", __func__, __LINE__, grub_efi_is_finished, text_input, key);
+
   if (key == GRUB_TERM_NO_KEY) {
     status = efi_call_2 (text_input->read_key_stroke, text_input, &key_data);
+    grub_printf("cdx: %s, line %d: %d, data=%p, key=%d, status=0x%lx\n", __func__, __LINE__, grub_efi_is_finished, text_input, key, status);
     if (status != GRUB_EFI_SUCCESS)
       return GRUB_ERR_EOF;
 
     key = grub_efi_translate_key (key_data.key);
+    grub_printf("cdx: %s, line %d: %d, data=%p, key=%d, status=0x%lx\n", __func__, __LINE__, grub_efi_is_finished, text_input, key, status);
   }
 
+  grub_printf("cdx: %s, line %d: %d, data=%p, consume=%d\n", __func__, __LINE__, grub_efi_is_finished, text_input, consume);
   *key_data_ret = key_data;
   *key_ret = key;
 
@@ -296,7 +316,9 @@ grub_console_getkey_ex (struct grub_term_input *term)
   grub_err_t err;
   int key = -1;
 
+  grub_printf("cdx: %s, line %d: %d, data=%p\n", __func__, __LINE__, grub_efi_is_finished, term->data);
   err = grub_console_read_key_stroke (term->data, &key_data, &key, 1);
+  grub_printf("cdx: %s, line %d: %d, data=%p, err=%d\n", __func__, __LINE__, grub_efi_is_finished, term->data, err);
   if (err != GRUB_ERR_NONE || key == GRUB_TERM_NO_KEY)
     return GRUB_TERM_NO_KEY;
 
@@ -356,16 +378,19 @@ grub_efi_console_input_init (struct grub_term_input *term)
   grub_efi_guid_t text_input_ex_guid =
     GRUB_EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID;
 
+  grub_printf("cdx: %s, line %d: %d, data=%p\n", __func__, __LINE__, grub_efi_is_finished, term->data);
   if (grub_efi_is_finished)
     return 0;
 
   grub_efi_simple_text_input_ex_interface_t *text_input = term->data;
+  grub_printf("cdx: %s, line %d: %d, data=%p, ti=%p\n", __func__, __LINE__, grub_efi_is_finished, term->data, text_input);
   if (text_input)
     return 0;
 
   text_input = grub_efi_open_protocol(grub_efi_system_table->console_in_handler,
 				      &text_input_ex_guid,
 				      GRUB_EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+  grub_printf("cdx: %s, line %d: %d, data=%p, ti=%p\n", __func__, __LINE__, grub_efi_is_finished, term->data, text_input);
   term->data = (void *)text_input;
 
   return 0;
@@ -374,6 +399,7 @@ grub_efi_console_input_init (struct grub_term_input *term)
 static int
 grub_console_getkey (struct grub_term_input *term)
 {
+  grub_printf("cdx: %s, line %d: %d, data=%p\n", __func__, __LINE__, grub_efi_is_finished, term->data);
   if (grub_efi_is_finished)
     return 0;
 
@@ -458,6 +484,7 @@ grub_efi_console_output_fini (struct grub_term_output *term)
 static struct grub_term_input grub_console_term_input =
   {
     .name = "console",
+    .name2 = "console-7",
     .getkey = grub_console_getkey,
     .getkeystatus = grub_console_getkeystatus,
     .init = grub_efi_console_input_init,

@@ -47,6 +47,7 @@ grub_get_tsc (void)
   /* Read TSC value.  We cannot use "=A", since this would use
      %rax on x86_64. */
   asm volatile ("rdtsc":"=a" (lo), "=d" (hi));
+  //asm volatile ("rdtsc":"=a" (lo), "=d" (hi));
 
   return (((grub_uint64_t) hi) << 32) | lo;
 }

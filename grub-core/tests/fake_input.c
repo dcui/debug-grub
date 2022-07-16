@@ -31,6 +31,7 @@ static int fake_input;
 static int
 fake_getkey (struct grub_term_input *term __attribute__ ((unused)))
 {
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   if (seq && seqptr < nseq)
     return seq[seqptr++];
   return -1;

@@ -170,9 +170,11 @@ grub_script_execute (struct grub_script *script)
   return script->cmd->exec (script->cmd);
 }
 
+static void cdx_print(const char *msg);
 int
 grub_getkey (void)
 {
+  cdx_print("cdx: grub_getkey in util/misc.c\n");
   return -1;
 }
 
@@ -182,13 +184,72 @@ grub_refresh (void)
   fflush (stdout);
 }
 
+#if 0
 static void
 grub_xputs_real (const char *str)
 {
   fputs (str, stdout);
 }
+#else
+/////////////////////////////////////////////////////////////////////////////////////////////
+typedef unsigned int u32;
+typedef unsigned long long u64;
 
-void (*grub_xputs) (const char *str) = grub_xputs_real;
+#define TDX_HYPERCALL_STANDARD  0
+#define tdcall   ".byte 0x66,0x0f,0x01,0xcc"
+#define EXIT_REASON_MSR_WRITE   32
+
+
+static int cdx_write_msr(u64 str)
+{
+	int ret;
+
+        asm volatile(
+                "xor %%eax, %%eax\n\t"
+
+		"movq $0, %%r10\n\t"
+		"movq $32, %%r11\n\t"
+		"movq $0x400000C1, %%r12\n\t"
+		"movq %1, %%r13\n\t"
+
+                "movl $0x3c00,%%ecx\n\t" //R10~R13
+
+		tdcall "\n\t"
+
+		"testq %%rax, %%rax\n\t"
+		"je 2f\n\t"
+"1:\t		int $0x3\n\t"
+"2:\t		movq %%r10, %%rax\n\t"
+		"testq %%rax, %%rax\n\t"
+		"je 4f\n\t"
+"3:\t		int $0x3\n\t"
+"4:\t		\n\t"
+
+                : "=&a" (ret)
+		: "r" (str)
+		: "%r10", "%r11", "%r12", "%r13", "ecx", "memory");
+
+        return ret;
+}
+
+static void cdx_print(const char *msg)
+{
+	const char *p = msg;
+	u64 ch;
+
+	while (*p) {
+		ch = *p;
+		cdx_write_msr(ch);
+		p++;
+	}
+
+	//return 0;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////
+#endif
+
+//void (*grub_xputs) (const char *str) = grub_xputs_real;
+void (*grub_xputs) (const char *str) = cdx_print;
 
 int
 grub_dl_ref (grub_dl_t mod)

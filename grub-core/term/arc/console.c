@@ -170,6 +170,7 @@ static struct grub_terminfo_output_state grub_console_terminfo_output =
 static struct grub_term_input grub_console_term_input =
   {
     .name = "console",
+    .name2 = "console-3",
     .init = grub_terminfo_input_init,
     .getkey = grub_terminfo_getkey,
     .data = &grub_console_terminfo_input
