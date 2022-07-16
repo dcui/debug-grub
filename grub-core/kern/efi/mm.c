@@ -238,27 +238,34 @@ grub_efi_finish_boot_services (grub_efi_uintn_t *outbuf_size, void *outbuf,
   grub_efi_boot_services_t *b;
   grub_efi_status_t status;
 
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
+
 #if defined (__i386__) || defined (__x86_64__)
   const grub_uint16_t apple[] = { 'A', 'p', 'p', 'l', 'e' };
   int is_apple;
 
   is_apple = (grub_memcmp (grub_efi_system_table->firmware_vendor,
 			   apple, sizeof (apple)) == 0);
+    grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
 #endif
 
   while (1)
     {
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       if (grub_efi_get_memory_map (&finish_mmap_size, finish_mmap_buf, &finish_key,
 				   &finish_desc_size, &finish_desc_version) < 0)
 	return grub_error (GRUB_ERR_IO, "couldn't retrieve memory map");
 
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       if (outbuf && *outbuf_size < finish_mmap_size)
 	return grub_error (GRUB_ERR_IO, "memory map buffer is too small");
 
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       finish_mmap_buf = grub_malloc (finish_mmap_size);
       if (!finish_mmap_buf)
 	return grub_errno;
 
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       if (grub_efi_get_memory_map (&finish_mmap_size, finish_mmap_buf, &finish_key,
 				   &finish_desc_size, &finish_desc_version) <= 0)
 	{
@@ -266,38 +273,55 @@ grub_efi_finish_boot_services (grub_efi_uintn_t *outbuf_size, void *outbuf,
 	  return grub_error (GRUB_ERR_IO, "couldn't retrieve memory map");
 	}
 
+      grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
       b = grub_efi_system_table->boot_services;
+      grub_printf("cdx: %s, line %d, b=%p\n", __func__, __LINE__, b);
       status = efi_call_2 (b->exit_boot_services, grub_efi_image_handle,
 			   finish_key);
+      grub_printf("cdx: %s, line %d, b=%p, status=%ld\n", __func__, __LINE__, b, status);
       if (status == GRUB_EFI_SUCCESS)
 	break;
 
       if (status != GRUB_EFI_INVALID_PARAMETER)
 	{
 	  grub_free (finish_mmap_buf);
+          grub_printf("cdx: %s, line %d, b=%p, status=%ld\n", __func__, __LINE__, b, status);
 	  return grub_error (GRUB_ERR_IO, "couldn't terminate EFI services");
 	}
 
+      grub_printf("cdx: %s, line %d, b=%p, status=%ld\n", __func__, __LINE__, b, status);
       grub_free (finish_mmap_buf);
+      grub_printf("cdx: %s, line %d, b=%p, status=%ld\n", __func__, __LINE__, b, status);
       grub_printf ("Trying to terminate EFI services again\n");
     }
+
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
+
   grub_efi_is_finished = 1;
   if (outbuf_size)
     *outbuf_size = finish_mmap_size;
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
   if (outbuf)
     grub_memcpy (outbuf, finish_mmap_buf, finish_mmap_size);
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
   if (map_key)
     *map_key = finish_key;
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
   if (efi_desc_size)
     *efi_desc_size = finish_desc_size;
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
   if (efi_desc_version)
     *efi_desc_version = finish_desc_version;
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
 
 #if defined (__i386__) || defined (__x86_64__)
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
   if (is_apple)
     stop_broadcom ();
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
 #endif
 
+  grub_printf("cdx: %s, line %d: apple=%d\n", __func__, __LINE__, is_apple);
   return GRUB_ERR_NONE;
 }
 

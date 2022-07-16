@@ -162,6 +162,7 @@ grub_puts_ (const char *s)
 }
 
 #if defined (__APPLE__) && ! defined (GRUB_UTIL)
+#error cdx: apple
 int
 grub_err_printf (const char *fmt, ...)
 {
