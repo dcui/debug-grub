@@ -879,7 +879,7 @@ grub_ext2_open (struct grub_file *file, const char *name)
   struct grub_fshelp_node *fdiro = 0;
   grub_err_t err;
 
-  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
+  grub_printf("cdx: %s, line %d, name=%s\n", __func__, __LINE__, name);
   grub_dl_ref (my_mod);
 
   data = grub_ext2_mount (file->device->disk);
@@ -944,7 +944,7 @@ grub_ext2_read (grub_file_t file, char *buf, grub_size_t len)
 {
   struct grub_ext2_data *data = (struct grub_ext2_data *) file->data;
 
-  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
+  //grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   return grub_ext2_read_file (&data->diropen,
 			      file->read_hook, file->read_hook_data,
 			      file->offset, len, buf);
@@ -996,7 +996,7 @@ grub_ext2_dir (grub_device_t device, const char *path, grub_fs_dir_hook_t hook,
   };
   struct grub_fshelp_node *fdiro = 0;
 
-  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
+  grub_printf("cdx: %s, line %d, path=%s\n", __func__, __LINE__, path);
   grub_dl_ref (my_mod);
 
   ctx.data = grub_ext2_mount (device->disk);

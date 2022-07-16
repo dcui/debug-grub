@@ -51,11 +51,13 @@ GRUB_MOD_LICENSE ("GPLv3+");
 #define DEFAULT_VIDEO_MODE "auto"
 #define ACCEPTS_PURE_TEXT 0
 #elif defined (GRUB_MACHINE_IEEE1275)
+#error cdx: 1275
 #include <grub/ieee1275/ieee1275.h>
 #define HAS_VGA_TEXT 0
 #define DEFAULT_VIDEO_MODE "text"
 #define ACCEPTS_PURE_TEXT 1
 #else
+#error cdx: vbe
 #include <grub/i386/pc/vbe.h>
 #include <grub/i386/pc/console.h>
 #define HAS_VGA_TEXT 1
@@ -412,7 +414,10 @@ grub_linux_boot (void)
   grub_size_t mmap_size;
   grub_size_t cl_offset;
 
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
+
 #ifdef GRUB_MACHINE_IEEE1275
+#error grub_linux_boot 1
   {
     const char *bootpath;
     grub_ssize_t len;
@@ -431,49 +436,62 @@ grub_linux_boot (void)
 #endif
 
   modevar = grub_env_get ("gfxpayload");
+  grub_printf("cdx: %s, line %d, modevar=%p:%s\n", __func__, __LINE__, modevar, modevar ?: "");
 
   /* Now all graphical modes are acceptable.
      May change in future if we have modes without framebuffer.  */
   if (modevar && *modevar != 0)
     {
       tmp = grub_xasprintf ("%s;" DEFAULT_VIDEO_MODE, modevar);
+      grub_printf("cdx: %s, line %d, tmp=%p:%s\n", __func__, __LINE__, tmp, tmp ?: "");
       if (! tmp)
 	return grub_errno;
 #if ACCEPTS_PURE_TEXT
+#error grub_linux_boot 2
       err = grub_video_set_mode (tmp, 0, 0);
 #else
+      grub_printf("cdx: %s, line %d, tmp=%p:%s\n", __func__, __LINE__, tmp, tmp ?: "");
       err = grub_video_set_mode (tmp, GRUB_VIDEO_MODE_TYPE_PURE_TEXT, 0);
+      grub_printf("cdx: %s, line %d, tmp=%p:%s, err=%d\n", __func__, __LINE__, tmp, tmp ?: "", err);
 #endif
       grub_free (tmp);
     }
   else       /* We can't go back to text mode from coreboot fb.  */
 #ifdef GRUB_MACHINE_COREBOOT
+#error grub_linux_boot 3
     if (grub_video_get_driver_id () == GRUB_VIDEO_DRIVER_COREBOOT)
       err = GRUB_ERR_NONE;
     else
 #endif
       {
 #if ACCEPTS_PURE_TEXT
+#error grub_linux_boot 4
 	err = grub_video_set_mode (DEFAULT_VIDEO_MODE, 0, 0);
 #else
+        grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 	err = grub_video_set_mode (DEFAULT_VIDEO_MODE,
 				 GRUB_VIDEO_MODE_TYPE_PURE_TEXT, 0);
+        grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
 #endif
       }
 
+  grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
   if (err)
     {
       grub_print_error ();
       grub_puts_ (N_("Booting in blind mode"));
+      grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
       grub_errno = GRUB_ERR_NONE;
     }
 
   if (grub_linux_setup_video (&linux_params))
     {
 #if defined (GRUB_MACHINE_PCBIOS) || defined (GRUB_MACHINE_COREBOOT) || defined (GRUB_MACHINE_QEMU)
+#error grub_linux_boot 5
       linux_params.have_vga = GRUB_VIDEO_LINUX_TYPE_TEXT;
       linux_params.video_mode = 0x3;
 #else
+      grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
       linux_params.have_vga = 0;
       linux_params.video_mode = 0;
       linux_params.video_width = 0;
@@ -483,12 +501,14 @@ grub_linux_boot (void)
 
 
 #ifndef GRUB_MACHINE_IEEE1275
+  grub_printf("cdx: %s, line %d, err=%d, vga=%d\n", __func__, __LINE__, err, linux_params.have_vga);
   if (linux_params.have_vga == GRUB_VIDEO_LINUX_TYPE_TEXT)
 #endif
     {
       grub_term_output_t term;
       int found = 0;
-      FOR_ACTIVE_TERM_OUTPUTS(term)
+      FOR_ACTIVE_TERM_OUTPUTS(term) {
+        grub_printf("cdx: %s, line %d, term:%s\n", __func__, __LINE__, term->name);
 	if (grub_strcmp (term->name, "vga_text") == 0
 	    || grub_strcmp (term->name, "console") == 0
 	    || grub_strcmp (term->name, "ofconsole") == 0)
@@ -501,6 +521,9 @@ grub_linux_boot (void)
 	    found = 1;
 	    break;
 	  }
+      }
+
+      grub_printf("cdx: %s, line %d, found=%d\n", __func__, __LINE__, found);
       if (!found)
 	{
 	  linux_params.video_cursor_x = 0;
@@ -511,6 +534,7 @@ grub_linux_boot (void)
     }
 
 #ifdef GRUB_KERNEL_USE_RSDP_ADDR
+#error grub_linux_boot 6
   linux_params.acpi_rsdp_addr = grub_le_to_cpu64 (grub_rsdp_addr);
 #endif
 
@@ -523,7 +547,9 @@ grub_linux_boot (void)
   ctx.real_size = ALIGN_UP (cl_offset + maximal_cmdline_size, 4096);
 
 #ifdef GRUB_MACHINE_EFI
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   efi_mmap_size = grub_efi_find_mmap_size ();
+  grub_printf("cdx: %s, line %d, efi_mmap_size=0x%lx\n", __func__, __LINE__, efi_mmap_size);
   if (efi_mmap_size == 0)
     return grub_errno;
 #endif
@@ -531,18 +557,32 @@ grub_linux_boot (void)
   grub_dprintf ("linux", "real_size = %x, mmap_size = %x\n",
 		(unsigned) ctx.real_size, (unsigned) mmap_size);
 
+  grub_printf ("linux: real_size = %x, mmap_size = %x\n",
+		(unsigned) ctx.real_size, (unsigned) mmap_size);
 #ifdef GRUB_MACHINE_EFI
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
   grub_efi_mmap_iterate (grub_linux_boot_mmap_find, &ctx, 1);
-  if (! ctx.real_mode_target)
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
+  if (! ctx.real_mode_target) {
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     grub_efi_mmap_iterate (grub_linux_boot_mmap_find, &ctx, 0);
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
+  }
 #else
+#error grub_linux_boot 7
   grub_mmap_iterate (grub_linux_boot_mmap_find, &ctx);
 #endif
   grub_dprintf ("linux", "real_mode_target = %lx, real_size = %x, efi_mmap_size = %x\n",
                 (unsigned long) ctx.real_mode_target,
 		(unsigned) ctx.real_size,
 		(unsigned) efi_mmap_size);
+  grub_printf ("linux: real_mode_target = %lx, real_size = %x, efi_mmap_size = %x\n",
+                (unsigned long) ctx.real_mode_target,
+		(unsigned) ctx.real_size,
+		(unsigned) efi_mmap_size);
 
+
+  grub_printf("cdx: %s, line %d: ctx.real_mode_target=0x%lx\n", __func__, __LINE__, ctx.real_mode_target);
   if (! ctx.real_mode_target)
     return grub_error (GRUB_ERR_OUT_OF_MEMORY, "cannot allocate real mode pages");
 
@@ -550,19 +590,27 @@ grub_linux_boot (void)
     grub_relocator_chunk_t ch;
     grub_size_t sz;
 
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     if (grub_add (ctx.real_size, efi_mmap_size, &sz))
       return GRUB_ERR_OUT_OF_RANGE;
 
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     err = grub_relocator_alloc_chunk_addr (relocator, &ch,
 					   ctx.real_mode_target, sz);
+    grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
     if (err)
      return err;
+
+    grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
     real_mode_mem = get_virtual_current_address (ch);
+    grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
   }
   efi_mmap_buf = (grub_uint8_t *) real_mode_mem + ctx.real_size;
 
   grub_dprintf ("linux", "real_mode_mem = %p\n",
                 real_mode_mem);
+
+  grub_printf ("linux: real_mode_mem = %p\n", real_mode_mem);
 
   ctx.params = real_mode_mem;
 
@@ -574,41 +622,52 @@ grub_linux_boot (void)
   grub_dprintf ("linux", "code32_start = %x\n",
 		(unsigned) ctx.params->code32_start);
 
+  grub_printf ("linux: code32_start = 0x%x\n", (unsigned) ctx.params->code32_start);
+
   ctx.e820_num = 0;
   if (grub_mmap_iterate (grub_linux_boot_mmap_fill, &ctx))
     return grub_errno;
   ctx.params->mmap_size = ctx.e820_num;
 
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 #ifdef GRUB_MACHINE_EFI
   {
     grub_efi_uintn_t efi_desc_size;
     grub_size_t efi_mmap_target;
     grub_efi_uint32_t efi_desc_version;
 
+    grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
     ctx.params->secure_boot = grub_efi_get_secureboot ();
+    grub_printf("cdx: %s, line %d, sb=%d\n", __func__, __LINE__, ctx.params->secure_boot);
 
     err = grub_efi_finish_boot_services (&efi_mmap_size, efi_mmap_buf, NULL,
 					 &efi_desc_size, &efi_desc_version);
+    grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
     if (err)
       return err;
 
     /* Note that no boot services are available from here.  */
     efi_mmap_target = ctx.real_mode_target
       + ((grub_uint8_t *) efi_mmap_buf - (grub_uint8_t *) real_mode_mem);
+
+    grub_printf("cdx: %s, line %d, ver=0x%x\n", __func__, __LINE__, grub_le_to_cpu16 (ctx.params->version));
     /* Pass EFI parameters.  */
     if (grub_le_to_cpu16 (ctx.params->version) >= 0x0208)
       {
+        grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 	ctx.params->v0208.efi_mem_desc_size = efi_desc_size;
 	ctx.params->v0208.efi_mem_desc_version = efi_desc_version;
 	ctx.params->v0208.efi_mmap = efi_mmap_target;
 	ctx.params->v0208.efi_mmap_size = efi_mmap_size;
 
 #ifdef __x86_64__
+        grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 	ctx.params->v0208.efi_mmap_hi = (efi_mmap_target >> 32);
 #endif
       }
     else if (grub_le_to_cpu16 (ctx.params->version) >= 0x0206)
       {
+        grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 	ctx.params->v0206.efi_mem_desc_size = efi_desc_size;
 	ctx.params->v0206.efi_mem_desc_version = efi_desc_version;
 	ctx.params->v0206.efi_mmap = efi_mmap_target;
@@ -616,6 +675,7 @@ grub_linux_boot (void)
       }
     else if (grub_le_to_cpu16 (ctx.params->version) >= 0x0204)
       {
+        grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
 	ctx.params->v0204.efi_mem_desc_size = efi_desc_size;
 	ctx.params->v0204.efi_mem_desc_version = efi_desc_version;
 	ctx.params->v0204.efi_mmap = efi_mmap_target;
@@ -630,7 +690,10 @@ grub_linux_boot (void)
   state.esi = ctx.real_mode_target;
   state.esp = ctx.real_mode_target;
   state.eip = ctx.params->code32_start;
-  return grub_relocator32_boot (relocator, state, 0);
+  grub_printf("cdx: %s, line %d\n", __func__, __LINE__);
+  err = grub_relocator32_boot (relocator, state, 0);
+  grub_printf("cdx: %s, line %d, err=%d\n", __func__, __LINE__, err);
+  return err;
 }
 
 static grub_err_t
